@@ -1,5 +1,6 @@
 //! The implementation of [`Board`] and its associated types
 
+use ratatui::style::Color;
 use std::ops::Neg;
 
 /// An enumeration reprensenting the state of a cell
@@ -53,19 +54,81 @@ impl CellState {
     pub fn is_playable(self) -> bool {
         matches!(self, Self::Blue | Self::Red)
     }
+
+    /// Checks if the current cell and `other` are opposite colors
+    ///
+    /// # Parameter
+    ///
+    /// - `other` - The other cell
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use blobwars::game::CellState::*;
+    ///
+    /// assert!(!Free.is_opponent_of(Free));
+    /// assert!(!Free.is_opponent_of(Blue));
+    /// assert!(Red.is_opponent_of(Blue));
+    /// ```
+    pub fn is_opponent_of(self, other: Self) -> bool {
+        match self {
+            Self::Blue => other == Self::Red,
+            Self::Red => other == Self::Blue,
+            _ => false,
+        }
+    }
 }
 
-impl Neg for CellState {
-    type Output = Option<CellState>;
+impl From<Player> for CellState {
+    fn from(value: Player) -> Self {
+        match value {
+            Player::Blue => Self::Blue,
+            Player::Red => Self::Red,
+        }
+    }
+}
+
+impl From<CellState> for Color {
+    fn from(value: CellState) -> Self {
+        match value {
+            CellState::Blue => Self::Blue,
+            CellState::Red => Self::Red,
+            CellState::Free => Self::default(),
+            CellState::Restricted => Self::Rgb(0xff, 0xa5, 0x00),
+        }
+    }
+}
+
+/// A player
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Player {
+    /// The blue player
+    Blue,
+
+    /// The red player
+    Red,
+}
+
+impl Neg for Player {
+    type Output = Self;
 
     /// Get the opposing player
-    ///
-    /// If the cell is not [_playable_](Self::is_playable), it returns `None`.
     fn neg(self) -> Self::Output {
         match self {
-            Self::Blue => Some(Self::Red),
-            Self::Red => Some(Self::Blue),
-            _ => None,
+            Self::Blue => Self::Red,
+            Self::Red => Self::Blue,
+        }
+    }
+}
+
+impl TryFrom<CellState> for Player {
+    type Error = &'static str;
+
+    fn try_from(value: CellState) -> Result<Self, Self::Error> {
+        match value {
+            CellState::Blue => Ok(Self::Blue),
+            CellState::Red => Ok(Self::Red),
+            _ => Err("The cell is not playable"),
         }
     }
 }
@@ -298,7 +361,7 @@ impl Board {
         if let Some(new) = self.get(row, column) {
             for state in self
                 .neighbors_mut(row, column, 1)
-                .filter(|&&mut state| (-new).is_some_and(|negated| state == negated))
+                .filter(|&&mut current| current.is_opponent_of(new))
             {
                 *state = new;
             }
