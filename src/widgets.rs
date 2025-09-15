@@ -9,59 +9,94 @@ use ratatui_macros::{line, span, text};
 
 pub mod board;
 
+/// A theme
+///
+/// Instances of this `struct` are used to colorize text.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Theme {
+    /// Style to emphasize
+    pub emph: Style,
+
+    /// Style to mark as important
+    pub important: Style,
+
+    /// Style used by links
+    pub link: Style,
+
+    /// Primary style
+    pub primary: Style,
+
+    /// Secondary style
+    pub secondary: Style,
+
+    /// Tertiary style
+    pub tertiary: Style,
+
+    /// Style used by titles
+    pub title: Style,
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self {
+            emph: Style::default().bold().italic().green(),
+            important: Style::default().bold().fg(Color::Rgb(0xe5, 0x95, 0x00)),
+            link: Style::default().fg(Color::Rgb(0xf4, 0xb8, 0x60)),
+            primary: Style::default(),
+            secondary: Style::default().fg(Color::Rgb(0x7e, 0x89, 0x87)),
+            tertiary: Style::default().fg(Color::Rgb(0x4b, 0x4a, 0x67)),
+            title: Style::default().bold().italic().underlined(),
+        }
+    }
+}
+
 /// Widget showing application credits
-pub struct Credits;
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct Credits {
+    /// The [theme](Theme) used to colorize text
+    pub theme: Theme,
+}
 
 impl Widget for Credits {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let block = Block::bordered().title("Credits");
 
-        let bold = Style::default().bold();
-        let blue = bold.blue();
-        let green = Style::default().green();
-        let yellow = bold.yellow();
-
         let text = text![
             line![
                 "This program was written by ",
-                span!(yellow; "Mattéo Rossillol‑‑Laruelle"),
+                span!(self.theme.important; "Mattéo Rossillol‑‑Laruelle"),
                 " <",
-                span!(green; "beatussum@protonmail.com"),
-                ">",
-            ],
-            line![
-                "(a.k.a. ",
-                span!(yellow; "@beatussum"),
+                span!(self.theme.link; "beatussum@protonmail.com"),
+                "> (a.k.a. ",
+                span!(self.theme.important; "@beatussum"),
                 ") and is licenced under ",
-                span!(yellow; "GPL-3.0-or-later"),
+                span!(self.theme.important; "GPL-3.0-or-later"),
                 ".",
             ],
             line![],
             line![
                 "If you want to support my work, do not forget to ",
-                span!(yellow; "star"),
+                span!(self.theme.important; "star"),
                 " and ",
-                span!(yellow; "follow"),
-                " the",
-            ],
-            line![
-                span!(blue; "GitHub repository"),
+                span!(self.theme.important; "follow"),
+                " the ",
+                span!(self.theme.secondary; "GitHub repository"),
                 " at ",
-                span!(green; "https://github.com/beatussum/blobwars"),
+                span!(self.theme.link; "https://github.com/beatussum/blobwars"),
                 ".",
             ],
             line![],
-            span!(bold.underlined(); "Licence notice:"),
+            span!(self.theme.title; "Licence notice:"),
             line![],
             line![
-                span!(blue; "blobwars"),
-                span!(bold; " Copyright (C) "),
-                span!(blue; "2025"),
+                span!(self.theme.secondary; "blobwars"),
+                " Copyright (C) ",
+                span!(self.theme.tertiary; "2025"),
                 " ",
-                span!(yellow; "Mattéo Rossillol‑‑Laruelle"),
-                span!(bold; " <"),
-                span!(green; "beatussum@protonmail.com"),
-                span!(bold; ">"),
+                span!(self.theme.important; "Mattéo Rossillol‑‑Laruelle"),
+                " <",
+                span!(self.theme.link; "beatussum@protonmail.com"),
+                ">",
             ],
             line!["This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'."],
             line!["This is free software, and you are welcome to redistribute it"],
@@ -76,7 +111,11 @@ impl Widget for Credits {
 }
 
 /// A [`Widget`] representing the logo of the application
-pub struct Logo;
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct Logo {
+    /// The [theme](Theme) used to colorize text
+    pub theme: Theme,
+}
 
 impl Logo {
     const B_TEXT: [&'static str; Self::HEIGHT] = [
@@ -148,9 +187,6 @@ impl Logo {
 
     const MARGIN_WIDTH: u16 = Self::B_WIDTH;
     const OFFSET_WIDTH: u16 = 2;
-
-    const CAPITAL_STYLE: Style = Style::new().fg(Color::Rgb(0xce, 0x4b, 0x27));
-    const BASIC_STYLE: Style = Style::new().fg(Color::Rgb(0x41, 0x5a, 0xb4));
 }
 
 impl Widget for Logo {
@@ -163,11 +199,11 @@ impl Widget for Logo {
                 .areas(top_area);
 
         Text::from_iter(Self::B_TEXT)
-            .style(Self::CAPITAL_STYLE)
+            .style(self.theme.secondary)
             .render(b_area, buf);
 
         Text::from_iter(Self::LOB_TEXT)
-            .style(Self::BASIC_STYLE)
+            .style(self.theme.tertiary)
             .render(lob_area, buf);
 
         let [_, w_area, _, ars_area] = Layout::horizontal([
@@ -179,11 +215,11 @@ impl Widget for Logo {
         .areas(bottom_area);
 
         Text::from_iter(Self::W_TEXT)
-            .style(Self::CAPITAL_STYLE)
+            .style(self.theme.secondary)
             .render(w_area, buf);
 
         Text::from_iter(Self::ARS_TEXT)
-            .style(Self::BASIC_STYLE)
+            .style(self.theme.tertiary)
             .render(ars_area, buf);
     }
 }
