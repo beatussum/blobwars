@@ -110,6 +110,102 @@ impl Widget for Credits {
     }
 }
 
+/// The help widget
+///
+/// This widget describes how to play to the game.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Help<'a> {
+    /// The selected symbol
+    ///
+    /// This symbol is used to show the selected cell.
+    pub selected_symbol: &'a str,
+
+    /// The unselected symbol
+    ///
+    /// This symbol is used to show unselected cells.
+    pub unselected_symbol: &'a str,
+
+    /// The [theme](Theme) used to colorize text
+    pub theme: Theme,
+}
+
+impl<'a> Help<'a> {
+    /// Set the [selected symbol](Self::selected_symbol)
+    pub fn selected_symbol(&mut self, selected_symbol: &'a str) -> &mut Self {
+        self.selected_symbol = selected_symbol;
+        self
+    }
+
+    /// Set the [unselected symbol](Self::unselected_symbol)
+    pub fn unselected_symbol(&mut self, unselected_symbol: &'a str) -> &mut Self {
+        self.unselected_symbol = unselected_symbol;
+        self
+    }
+}
+
+impl Default for Help<'static> {
+    /// Return the _default value_ for a type
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use blobwars::widgets::Help;
+    ///
+    /// let help = Help::default();
+    /// assert_eq!(help.selected_symbol, "V");
+    /// assert_eq!(help.unselected_symbol, "O");
+    /// ```
+    fn default() -> Self {
+        Self {
+            selected_symbol: "V",
+            unselected_symbol: "O",
+            theme: Theme::default(),
+        }
+    }
+}
+
+impl Widget for Help<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let block = Block::bordered().title("Help");
+
+        let text = text![
+            span!(self.theme.title; "Goal"),
+            line![],
+            line![
+                "In order to win the game, you need to have ",
+                span!(self.theme.important; "only your own color in the grid"),
+                " or to have ",
+                span!(self.theme.important; "more "),
+                span!(self.theme.important.italic(); "blobs"),
+                span!(self.theme.important; " than your opponent when one of the two players cannot play anymore"),
+                ".",
+            ],
+            line![],
+            span!(self.theme.title; "Rules"),
+            line![],
+            line![
+                "The board contains blue and red pieces (also called ",
+                span!(self.theme.emph; "blobs"),
+                concat!(
+                    "). ",
+                    "Players take turns. ",
+                    "On each turn, the current player chooses one of their pieces and moves it. ",
+                    "Any piece can move to an empty adjacent square, including diagonally, duplicating itself and creating a new piece of the same color. ",
+                    "A piece can also move two squares. ",
+                    "In this case, there is no duplication and the piece is said to make a ",
+                ),
+                span!(self.theme.emph; "jump"),
+                ". Once it reaches its destination, a piece transforms all of its opponent's neighboring pieces into pieces of its own color."
+            ],
+        ];
+
+        Paragraph::new(text)
+            .block(block)
+            .wrap(Wrap { trim: true })
+            .render(area, buf);
+    }
+}
+
 /// A [`Widget`] representing the logo of the application
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Logo {
