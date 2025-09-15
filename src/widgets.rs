@@ -1,6 +1,10 @@
 //! A module contaning implementation of the different [widgets](ratatui::widgets::Widget) used by the application
 
-use ratatui::{prelude::*, widgets::Block};
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Paragraph, Wrap},
+};
+
 use ratatui_macros::{line, span, text};
 
 pub mod board;
@@ -11,7 +15,6 @@ pub struct Credits;
 impl Widget for Credits {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let block = Block::bordered().title("Credits");
-        let inner = block.inner(area);
 
         let bold = Style::default().bold();
         let blue = bold.blue();
@@ -65,8 +68,10 @@ impl Widget for Credits {
             line!["under certain conditions; type `show c' for details."],
         ];
 
-        Text::from_iter(text).render(inner, buf);
-        block.render(area, buf);
+        Paragraph::new(text)
+            .block(block)
+            .wrap(Wrap { trim: true })
+            .render(area, buf);
     }
 }
 
