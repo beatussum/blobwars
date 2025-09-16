@@ -3,22 +3,22 @@
 use crate::game::{CellState, Index, Player};
 use ratatui::{layout::Flex, prelude::*};
 use ratatui_macros::{constraint, constraints};
-use std::{iter::once, marker::PhantomData};
+use std::iter::once;
 
 /// State of the [`Board`] widget
 ///
 /// This state can be used to move through cells and select the departure and destination positions used for a [jump](crate::game::Board::jump).
 /// The underlying type managed by this state is [`Board`](crate::game::Board).
 #[derive(Debug, PartialEq, Eq)]
-pub struct BoardState<'a> {
-    board: &'a mut crate::game::Board,
+pub struct BoardState {
+    board: crate::game::Board,
     current_player: Player,
     selected: Index,
     from: Option<Index>,
     to: Option<Index>,
 }
 
-impl<'a> BoardState<'a> {
+impl BoardState {
     /// Create a new [`BoardState`]
     ///
     /// # Parameters
@@ -43,10 +43,10 @@ impl<'a> BoardState<'a> {
     ///     Free, Free, Free,       Free, Blue,
     /// ];
     ///
-    /// let mut board = Board::new(5, 5, board);
-    /// let _state = BoardState::new(&mut board, Player::Blue);
+    /// let board = Board::new(5, 5, board);
+    /// let _state = BoardState::new(board, Player::Blue);
     /// ```
-    pub fn new(board: &'a mut crate::game::Board, current_player: Player) -> Self {
+    pub fn new(board: crate::game::Board, current_player: Player) -> Self {
         Self {
             board,
             current_player,
@@ -100,8 +100,8 @@ impl<'a> BoardState<'a> {
     /// #     Free, Free, Free,       Free, Blue,
     /// # ];
     /// #
-    /// # let mut board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(&mut board, Player::Blue); // selected = (0, 0)
+    /// # let board = Board::new(5, 5, board);
+    /// let mut state = BoardState::new(board, Player::Blue); // selected = (0, 0)
     /// state.right(); // selected = (1, 0)
     /// state.left(); // Selected = (0, 0)
     /// state.left(); // Selected = (0, 0)
@@ -130,8 +130,8 @@ impl<'a> BoardState<'a> {
     /// #     Free, Free, Free,       Free, Blue,
     /// # ];
     /// #
-    /// # let mut board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(&mut board, Player::Blue); // selected = (0, 0)
+    /// # let board = Board::new(5, 5, board);
+    /// let mut state = BoardState::new(board, Player::Blue); // selected = (0, 0)
     /// state.right(); // selected = (1, 0)
     /// ```
     #[inline]
@@ -159,8 +159,8 @@ impl<'a> BoardState<'a> {
     /// #     Free, Free, Free,       Free, Blue,
     /// # ];
     /// #
-    /// # let mut board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(&mut board, Player::Blue); // selected = (0, 0)
+    /// # let board = Board::new(5, 5, board);
+    /// let mut state = BoardState::new(board, Player::Blue); // selected = (0, 0)
     /// state.down(); // selected = (0, 1)
     /// state.up(); // Selected = (0, 0)
     /// state.up(); // Selected = (0, 0)
@@ -189,8 +189,8 @@ impl<'a> BoardState<'a> {
     /// #     Free, Free, Free,       Free, Blue,
     /// # ];
     /// #
-    /// # let mut board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(&mut board, Player::Blue); // selected = (0, 0)
+    /// # let board = Board::new(5, 5, board);
+    /// let mut state = BoardState::new(board, Player::Blue); // selected = (0, 0)
     /// state.down(); // selected = (0, 1)
     /// ```
     #[inline]
@@ -217,8 +217,8 @@ impl<'a> BoardState<'a> {
     /// #     Free, Free, Free,       Free, Blue,
     /// # ];
     /// #
-    /// # let mut board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(&mut board, Player::Blue); // 0 selected & selected = (0, 0)
+    /// # let board = Board::new(5, 5, board);
+    /// let mut state = BoardState::new(board, Player::Blue); // 0 selected & selected = (0, 0)
     /// state.select(); // 1 selected & selected = (0, 0)
     /// state.down(); // 1 selected & selected = (0, 1)
     /// state.select(); // 2 selected & selected = (0, 1)
@@ -255,8 +255,8 @@ impl<'a> BoardState<'a> {
     /// #     Free, Free, Free,       Free, Blue,
     /// # ];
     /// #
-    /// # let mut board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(&mut board, Player::Blue); // 0 selected & selected = (0, 0)
+    /// # let board = Board::new(5, 5, board);
+    /// let mut state = BoardState::new(board, Player::Blue); // 0 selected & selected = (0, 0)
     /// state.select(); // 1 selected & selected = (0, 0)
     /// state.down(); // 1 selected & selected = (0, 1)
     /// state.select(); // 2 selected & selected = (0, 1)
@@ -292,42 +292,44 @@ impl<'a> BoardState<'a> {
 
 /// A board allowing to show a [`Board`](crate::game::Board)
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Board<'a, 'b> {
+pub struct Board<'a> {
     selected_symbol: &'a str,
     unselected_symbol: &'a str,
-    _phantom: PhantomData<&'b ()>,
 }
 
-impl<'a> Board<'a, '_> {
+impl<'a> Board<'a> {
     /// Set the selected symbol
     ///
     /// This symbol is used to show the selected cell.
-    pub fn selected_symbol(&mut self, selected_symbol: &'a str) -> &mut Self {
-        self.selected_symbol = selected_symbol;
-        self
+    pub fn selected_symbol(self, selected_symbol: &'a str) -> Self {
+        Self {
+            selected_symbol,
+            ..self
+        }
     }
 
     /// Set the unselected symbol
     ///
     /// This symbol is used to show unselected cells.
-    pub fn unselected_symbol(&mut self, unselected_symbol: &'a str) -> &mut Self {
-        self.unselected_symbol = unselected_symbol;
-        self
-    }
-}
-
-impl Default for Board<'static, '_> {
-    fn default() -> Self {
+    pub fn unselected_symbol(self, unselected_symbol: &'a str) -> Self {
         Self {
-            selected_symbol: "V",
-            unselected_symbol: "O",
-            _phantom: PhantomData,
+            unselected_symbol,
+            ..self
         }
     }
 }
 
-impl<'a, 'b> StatefulWidget for Board<'a, 'b> {
-    type State = BoardState<'a>;
+impl Default for Board<'static> {
+    fn default() -> Self {
+        Self {
+            selected_symbol: "V",
+            unselected_symbol: "O",
+        }
+    }
+}
+
+impl StatefulWidget for Board<'_> {
+    type State = BoardState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let [area] = Layout::vertical(constraints![==100%]).areas(area);
@@ -378,8 +380,8 @@ mod tests {
             Free, Free, Free,       Free, Blue,
         ];
 
-        let mut board = crate::game::Board::new(5, 5, board);
-        let mut state = BoardState::new(&mut board, Player::Red);
+        let board = crate::game::Board::new(5, 5, board);
+        let mut state = BoardState::new(board, Player::Red);
         let widget = Board::default();
 
         pre(&mut state);
