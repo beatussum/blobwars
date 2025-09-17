@@ -316,14 +316,19 @@ impl CommandManaged for BoardState {
 /// A board allowing to show a [`Board`](crate::game::Board)
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Board<'a> {
-    selected_symbol: &'a str,
-    unselected_symbol: &'a str,
+    /// The selected symbol
+    ///
+    /// This symbol is used to show the selected cell.
+    pub selected_symbol: &'a str,
+
+    /// The unselected symbol
+    ///
+    /// This symbol is used to show unselected cells.
+    pub unselected_symbol: &'a str,
 }
 
 impl<'a> Board<'a> {
-    /// Set the selected symbol
-    ///
-    /// This symbol is used to show the selected cell.
+    /// Set the [selected symbol](Self::selected_symbol)
     pub fn selected_symbol(self, selected_symbol: &'a str) -> Self {
         Self {
             selected_symbol,
@@ -331,9 +336,7 @@ impl<'a> Board<'a> {
         }
     }
 
-    /// Set the unselected symbol
-    ///
-    /// This symbol is used to show unselected cells.
+    /// Set the [unselected symbol](Self::unselected_symbol)
     pub fn unselected_symbol(self, unselected_symbol: &'a str) -> Self {
         Self {
             unselected_symbol,
