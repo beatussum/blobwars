@@ -3,10 +3,16 @@
 use crate::{
     Command, CommandManaged,
     game::{CellState, Index, Player},
+    widgets::Theme,
 };
 
-use ratatui::{layout::Flex, prelude::*};
-use ratatui_macros::{constraint, constraints};
+use ratatui::{
+    layout::Flex,
+    prelude::*,
+    widgets::{Block, Paragraph, Wrap},
+};
+
+use ratatui_macros::{constraint, constraints, line, span, text};
 use std::iter::once;
 
 /// State of the [`Board`] widget
@@ -34,21 +40,21 @@ impl BoardState {
     ///
     /// ```rust
     /// use blobwars::{
-    ///     game::{Board, CellState::*, Player},
+    ///     game::{Board, CellState::*, Player::*},
     ///     widgets::board::BoardState,
     /// };
     ///
     /// #[rustfmt::skip]
     /// let board = vec![
-    ///     Red,  Free, Free,       Free, Free,
-    ///     Free, Free, Free,       Free, Free,
-    ///     Free, Free, Restricted, Free, Free,
-    ///     Free, Free, Free,       Free, Free,
-    ///     Free, Free, Free,       Free, Blue,
+    ///     Player(Red), Free, Free,       Free, Free,
+    ///     Free,        Free, Free,       Free, Free,
+    ///     Free,        Free, Restricted, Free, Free,
+    ///     Free,        Free, Free,       Free, Free,
+    ///     Free,        Free, Free,       Free, Player(Blue),
     /// ];
     ///
     /// let board = Board::new(5, 5, board);
-    /// let _state = BoardState::new(board, Player::Blue);
+    /// let _state = BoardState::new(board, Blue);
     /// ```
     pub fn new(board: crate::game::Board, current_player: Player) -> Self {
         Self {
@@ -91,21 +97,21 @@ impl BoardState {
     ///
     /// ```rust
     /// # use blobwars::{
-    /// #     game::{Board, CellState::*, Player},
+    /// #     game::{Board, CellState::*, Player::*},
     /// #     widgets::board::BoardState,
     /// # };
     /// #
     /// # #[rustfmt::skip]
     /// # let board = vec![
-    /// #     Red,  Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Restricted, Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Blue,
+    /// #     Player(Red), Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Restricted, Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Player(Blue),
     /// # ];
     /// #
     /// # let board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(board, Player::Blue); // selected = (0, 0)
+    /// let mut state = BoardState::new(board, Blue); // selected = (0, 0)
     /// state.right(); // selected = (1, 0)
     /// state.left(); // Selected = (0, 0)
     /// state.left(); // Selected = (0, 0)
@@ -121,21 +127,21 @@ impl BoardState {
     ///
     /// ```rust
     /// # use blobwars::{
-    /// #     game::{Board, CellState::*, Player},
+    /// #     game::{Board, CellState::*, Player::*},
     /// #     widgets::board::BoardState,
     /// # };
     /// #
     /// # #[rustfmt::skip]
     /// # let board = vec![
-    /// #     Red,  Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Restricted, Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Blue,
+    /// #     Player(Red), Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Restricted, Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Player(Blue),
     /// # ];
     /// #
     /// # let board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(board, Player::Blue); // selected = (0, 0)
+    /// let mut state = BoardState::new(board, Blue); // selected = (0, 0)
     /// state.right(); // selected = (1, 0)
     /// ```
     #[inline]
@@ -150,21 +156,21 @@ impl BoardState {
     ///
     /// ```rust
     /// # use blobwars::{
-    /// #     game::{Board, CellState::*, Player},
+    /// #     game::{Board, CellState::*, Player::*},
     /// #     widgets::board::BoardState,
     /// # };
     /// #
     /// # #[rustfmt::skip]
     /// # let board = vec![
-    /// #     Red,  Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Restricted, Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Blue,
+    /// #     Player(Red), Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Restricted, Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Player(Blue),
     /// # ];
     /// #
     /// # let board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(board, Player::Blue); // selected = (0, 0)
+    /// let mut state = BoardState::new(board, Blue); // selected = (0, 0)
     /// state.down(); // selected = (0, 1)
     /// state.up(); // Selected = (0, 0)
     /// state.up(); // Selected = (0, 0)
@@ -180,21 +186,21 @@ impl BoardState {
     ///
     /// ```rust
     /// # use blobwars::{
-    /// #     game::{Board, CellState::*, Player},
+    /// #     game::{Board, CellState::*, Player::*},
     /// #     widgets::board::BoardState,
     /// # };
     /// #
     /// # #[rustfmt::skip]
     /// # let board = vec![
-    /// #     Red,  Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Restricted, Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Blue,
+    /// #     Player(Red), Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Restricted, Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Player(Blue),
     /// # ];
     /// #
     /// # let board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(board, Player::Blue); // selected = (0, 0)
+    /// let mut state = BoardState::new(board, Blue); // selected = (0, 0)
     /// state.down(); // selected = (0, 1)
     /// ```
     #[inline]
@@ -208,21 +214,21 @@ impl BoardState {
     ///
     /// ```rust
     /// # use blobwars::{
-    /// #     game::{Board, CellState::*, Player},
+    /// #     game::{Board, CellState::*, Player::*},
     /// #     widgets::board::BoardState,
     /// # };
     /// #
     /// # #[rustfmt::skip]
     /// # let board = vec![
-    /// #     Red,  Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Restricted, Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Blue,
+    /// #     Player(Red), Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Restricted, Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Player(Blue),
     /// # ];
     /// #
     /// # let board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(board, Player::Blue); // 0 selected & selected = (0, 0)
+    /// let mut state = BoardState::new(board, Red); // 0 selected & selected = (0, 0)
     /// state.select(); // 1 selected & selected = (0, 0)
     /// state.down(); // 1 selected & selected = (0, 1)
     /// state.select(); // 2 selected & selected = (0, 1)
@@ -242,30 +248,34 @@ impl BoardState {
     /// The first selection corresponds to the departure point; the second one corresponds to the destination point.
     /// The departure point must be the color of the current player and the destination point must be [free](CellState::Free); if it is not respected, [`Self::select()`] has no effects.
     ///
+    /// # Return
+    ///
+    /// The returned value is `true` if the selection causes a jump; otherwise, it returns `false`.
+    ///
     /// # Example
     ///
     /// ```rust
     /// # use blobwars::{
-    /// #     game::{Board, CellState::*, Player},
+    /// #     game::{Board, CellState::*, Player::*},
     /// #     widgets::board::BoardState,
     /// # };
     /// #
     /// # #[rustfmt::skip]
     /// # let board = vec![
-    /// #     Red,  Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Restricted, Free, Free,
-    /// #     Free, Free, Free,       Free, Free,
-    /// #     Free, Free, Free,       Free, Blue,
+    /// #     Player(Red), Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Restricted, Free, Free,
+    /// #     Free,        Free, Free,       Free, Free,
+    /// #     Free,        Free, Free,       Free, Player(Blue),
     /// # ];
     /// #
     /// # let board = Board::new(5, 5, board);
-    /// let mut state = BoardState::new(board, Player::Blue); // 0 selected & selected = (0, 0)
-    /// state.select(); // 1 selected & selected = (0, 0)
+    /// let mut state = BoardState::new(board, Red); // 0 selected & selected = (0, 0)
+    /// assert!(!state.select()); // 1 selected & selected = (0, 0)
     /// state.down(); // 1 selected & selected = (0, 1)
-    /// state.select(); // 2 selected & selected = (0, 1)
-    /// state.select(); // jump & 0 selected & selected = (0, 1)
-    pub fn select(&mut self) {
+    /// assert!(!state.select()); // 2 selected & selected = (0, 1)
+    /// assert!(state.select()); // jump & 0 selected & selected = (0, 1)
+    pub fn select(&mut self) -> bool {
         let current_cell = self.board.get(self.selected.0, self.selected.1);
 
         if let Some(from) = self.from {
@@ -274,16 +284,19 @@ impl BoardState {
 
                 self.from = None;
                 self.to = None;
+
+                return true;
             } else if current_cell.map(CellState::is_free).unwrap_or_default() {
                 self.to = Some(self.selected);
             }
         } else if current_cell
-            .and_then(|selected| selected.try_into().ok())
-            .map(|selected: Player| selected == self.current_player)
+            .map(|selected| selected == CellState::Player(self.current_player))
             .unwrap_or_default()
         {
             self.from = Some(self.selected);
         }
+
+        false
     }
 
     /// Pass to the next player
@@ -300,8 +313,9 @@ impl CommandManaged for BoardState {
             Command::Reset => self.reset(),
 
             Command::Select => {
-                self.select();
-                self.pass_to_next_player();
+                if self.select() {
+                    self.pass_to_next_player();
+                }
             }
 
             Command::Left => self.left(),
@@ -388,10 +402,63 @@ impl StatefulWidget for Board<'_> {
     }
 }
 
+/// The score widget
+pub struct Score {
+    /// The [theme](Theme) used to colorize text
+    pub theme: Theme,
+}
+
+impl StatefulWidget for Score {
+    type State = BoardState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let crate::game::Score { red, blue } = state.board.score();
+
+        let text = text![
+            span!(self.theme.title; "Status:"),
+            line![],
+            line![
+                span!(self.theme.important; "Current player"),
+                ": ",
+                state.current_player,
+            ],
+            line![
+                span!(self.theme.important; "From (selected)"),
+                ": ",
+                display_selected(state.from),
+            ],
+            line![
+                span!(self.theme.important; "To (selected)"),
+                ": ",
+                display_selected(state.to),
+            ],
+            line![],
+            span!(self.theme.title; "Score:"),
+            line![],
+            line![Player::Blue, ": ", blue.to_string()],
+            line![Player::Red, ": ", red.to_string()],
+        ];
+
+        Paragraph::new(text)
+            .block(Block::bordered().title("Score"))
+            .wrap(Wrap { trim: true })
+            .render(area, buf);
+    }
+}
+
+fn display_selected(value: Option<Index>) -> String {
+    if let Some((i, j)) = value {
+        format!("({i}, {j})")
+    } else {
+        "(None)".to_owned()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::game::CellState::*;
+    use crate::game::Player::*;
 
     fn tested(pre: impl FnOnce(&mut BoardState)) -> Buffer {
         let area = Rect::new(0, 0, 9, 5);
@@ -399,15 +466,15 @@ mod tests {
 
         #[rustfmt::skip]
         let board = vec![
-            Red,  Free, Free,       Free, Free,
-            Free, Free, Free,       Free, Free,
-            Free, Free, Restricted, Free, Free,
-            Free, Free, Free,       Free, Free,
-            Free, Free, Free,       Free, Blue,
+            Player(Red), Free, Free,       Free, Free,
+            Free,        Free, Free,       Free, Free,
+            Free,        Free, Restricted, Free, Free,
+            Free,        Free, Free,       Free, Free,
+            Free,        Free, Free,       Free, Player(Blue),
         ];
 
         let board = crate::game::Board::new(5, 5, board);
-        let mut state = BoardState::new(board, Player::Red);
+        let mut state = BoardState::new(board, Red);
         let widget = Board::default();
 
         pre(&mut state);

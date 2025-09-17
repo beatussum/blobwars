@@ -2,14 +2,17 @@
 
 #![warn(missing_docs)]
 
-use game::Player;
 use ratatui::{
     crossterm::event::{Event, KeyCode, KeyEventKind},
     prelude::*,
 };
+
 use ratatui_macros::constraints;
-use widgets::board::BoardState;
-use widgets::{Credits, Logo, Theme};
+
+use widgets::{
+    Credits, Logo, Theme,
+    board::{BoardState, Score},
+};
 
 pub mod game;
 pub mod widgets;
@@ -111,21 +114,22 @@ impl CommandManaged for ApplicationState {
                 Self::Logo => {
                     if matches!(command, Command::Select) {
                         use game::CellState::*;
+                        use game::Player::*;
 
                         #[rustfmt::skip]
                         let board = vec![
-                            Red,  Free, Free, Free, Free, Free, Free, Free,
-                            Free, Free, Free, Free, Free, Free, Free, Free,
-                            Free, Free, Free, Free, Free, Free, Free, Free,
-                            Free, Free, Free, Free, Free, Free, Free, Free,
-                            Free, Free, Free, Free, Free, Free, Free, Free,
-                            Free, Free, Free, Free, Free, Free, Free, Free,
-                            Free, Free, Free, Free, Free, Free, Free, Free,
-                            Free, Free, Free, Free, Free, Free, Free, Blue,
+                            Player(Red),  Free, Free, Free, Free, Free, Free, Free,
+                            Free,         Free, Free, Free, Free, Free, Free, Free,
+                            Free,         Free, Free, Free, Free, Free, Free, Free,
+                            Free,         Free, Free, Free, Free, Free, Free, Free,
+                            Free,         Free, Free, Free, Free, Free, Free, Free,
+                            Free,         Free, Free, Free, Free, Free, Free, Free,
+                            Free,         Free, Free, Free, Free, Free, Free, Free,
+                            Free,         Free, Free, Free, Free, Free, Free, Player(Blue),
                         ];
 
                         let board = game::Board::new(8, 8, board);
-                        let board_state = BoardState::new(board, Player::Blue);
+                        let board_state = BoardState::new(board, Blue);
                         *self = Self::Board(board_state);
                     }
                 }
@@ -168,13 +172,15 @@ impl StatefulWidget for Application<'_> {
         match state {
             Self::State::Board(state) => {
                 let [top, bottom] = Layout::vertical(constraints![==60%, ==40%]).areas(area);
-
-                Credits { theme: self.theme }.render(bottom, buf);
+                let [left, right] = Layout::horizontal(constraints![==80%, ==20%]).areas(top);
 
                 widgets::board::Board::default()
                     .selected_symbol(self.selected_symbol)
                     .unselected_symbol(self.unselected_symbol)
-                    .render(top, buf, state)
+                    .render(left, buf, state);
+
+                Score { theme: self.theme }.render(right, buf, state);
+                Credits { theme: self.theme }.render(bottom, buf);
             }
 
             Self::State::Exit => (),

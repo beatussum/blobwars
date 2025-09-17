@@ -1,16 +1,18 @@
 //! The implementation of [`Board`] and its associated types
 
-use ratatui::style::Color;
-use std::ops::Neg;
+use ratatui::{style::Color, text::Span};
+use ratatui_macros::span;
+
+use std::{
+    fmt::{Display, Formatter},
+    ops::Neg,
+};
 
 /// An enumeration reprensenting the state of a cell
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum CellState {
-    /// The cell is occupied by the blue player
-    Blue,
-
-    /// The cell is occupied by the red player
-    Red,
+    /// The cell is occupied by a player
+    Player(Player),
 
     /// The cell is free
     #[default]
@@ -23,14 +25,9 @@ pub enum CellState {
 }
 
 impl CellState {
-    /// Check if the current cell is occupied by the [`Self::Blue`] player
-    pub fn is_blue(self) -> bool {
-        self == Self::Blue
-    }
-
-    /// Check if the current cell is occupied by the [`Self::Red`] player
-    pub fn is_red(self) -> bool {
-        self == Self::Red
+    /// Check if the current cell is occupied by a player
+    pub fn is_playable(self) -> bool {
+        matches!(self, Self::Player(_))
     }
 
     /// Check if the current cell is [`Self::Free`]
@@ -50,11 +47,6 @@ impl CellState {
         !self.is_free()
     }
 
-    /// Check if the current cell is occupied by a player
-    pub fn is_playable(self) -> bool {
-        matches!(self, Self::Blue | Self::Red)
-    }
-
     /// Checks if the current cell and `other` are opposite colors
     ///
     /// # Parameter
@@ -64,26 +56,20 @@ impl CellState {
     /// # Example
     ///
     /// ```rust
-    /// use blobwars::game::CellState::*;
+    /// use blobwars::game::{CellState::*, Player::*};
     ///
     /// assert!(!Free.is_opponent_of(Free));
-    /// assert!(!Free.is_opponent_of(Blue));
-    /// assert!(Red.is_opponent_of(Blue));
+    /// assert!(!Free.is_opponent_of(Player(Blue)));
+    /// assert!(Player(Red).is_opponent_of(Player(Blue)));
     /// ```
     pub fn is_opponent_of(self, other: Self) -> bool {
         match self {
-            Self::Blue => other == Self::Red,
-            Self::Red => other == Self::Blue,
-            _ => false,
-        }
-    }
-}
+            Self::Player(a) => match other {
+                Self::Player(b) => a == -b,
+                _ => false,
+            },
 
-impl From<Player> for CellState {
-    fn from(value: Player) -> Self {
-        match value {
-            Player::Blue => Self::Blue,
-            Player::Red => Self::Red,
+            _ => false,
         }
     }
 }
@@ -91,8 +77,7 @@ impl From<Player> for CellState {
 impl From<CellState> for Color {
     fn from(value: CellState) -> Self {
         match value {
-            CellState::Blue => Self::Blue,
-            CellState::Red => Self::Red,
+            CellState::Player(player) => player.into(),
             CellState::Free => Self::default(),
             CellState::Restricted => Self::Rgb(0xff, 0xa5, 0x00),
         }
@@ -109,6 +94,30 @@ pub enum Player {
     Red,
 }
 
+impl From<Player> for Color {
+    fn from(value: Player) -> Self {
+        match value {
+            Player::Blue => Color::Blue,
+            Player::Red => Color::Red,
+        }
+    }
+}
+
+impl Display for Player {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Blue => write!(f, "Blue"),
+            Self::Red => write!(f, "Red"),
+        }
+    }
+}
+
+impl From<Player> for Span<'static> {
+    fn from(value: Player) -> Self {
+        span!(Color::from(value); value)
+    }
+}
+
 impl Neg for Player {
     type Output = Self;
 
@@ -121,25 +130,45 @@ impl Neg for Player {
     }
 }
 
-impl TryFrom<CellState> for Player {
-    type Error = &'static str;
+/// An index of the [`Board`]
+pub type Index = (usize, usize);
 
-    fn try_from(value: CellState) -> Result<Self, Self::Error> {
-        match value {
-            CellState::Blue => Ok(Self::Blue),
-            CellState::Red => Ok(Self::Red),
-            _ => Err("The cell is not playable"),
+/// The score of a [game](Board)
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+pub struct Score {
+    /// The score of the [red player](Player::Red)
+    pub red: usize,
+
+    /// The score of the [blue player](Player::Blue)
+    pub blue: usize,
+}
+
+impl Score {
+    /// Get the score of the corresponding player
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use blobwars::game::{Player, Score};
+    ///
+    /// let mut score = Score::default();
+    /// assert_eq!(score, Score { blue: 0, red: 0 });
+    /// *score.get_mut(Player::Blue) += 1;
+    /// assert_eq!(score, Score { blue: 1, red: 0 });
+    /// ```
+    pub fn get_mut(&mut self, player: Player) -> &mut usize {
+        match player {
+            Player::Blue => &mut self.blue,
+            Player::Red => &mut self.red,
         }
     }
 }
-
-/// An index of the [`Board`]
-pub type Index = (usize, usize);
 
 /// A game board
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Board {
     board: Vec<CellState>,
+    score: Score,
     height: usize,
     width: usize,
 }
@@ -156,6 +185,7 @@ impl Board {
 
         Self {
             board,
+            score: Score::default(),
             height,
             width,
         }
@@ -171,22 +201,35 @@ impl Board {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```should_panic
     /// use blobwars::game::{Board, CellState};
-    /// use std::panic::catch_unwind;
-    ///
-    /// Board::new(5, 5, vec![CellState::Free; 25]);
-    /// let is_panicking = catch_unwind(|| Board::new(5, 5, Vec::default())).is_err();
-    /// assert!(is_panicking);
+    /// let _board = Board::new(5, 5, Vec::default());
     /// ```
     pub fn new(height: usize, width: usize, board: Vec<CellState>) -> Self {
         assert_eq!(board.len(), height * width);
 
+        let score = board.iter().fold(Score::default(), |mut score, cell| {
+            if let CellState::Player(player) = cell {
+                match player {
+                    Player::Blue => score.blue += 1,
+                    Player::Red => score.red += 1,
+                }
+            }
+
+            score
+        });
+
         Self {
             board,
+            score,
             height,
             width,
         }
+    }
+
+    /// Get the current [score](Score)
+    pub fn score(&self) -> Score {
+        self.score
     }
 
     /// Get the height of the underlying grid
@@ -358,14 +401,19 @@ impl Board {
     }
 
     fn blob(&mut self, row: usize, column: usize) -> bool {
-        if let Some(new) = self.get(row, column) {
+        if let Some(new_state @ CellState::Player(new_player)) = self.get(row, column) {
+            let mut score = self.score;
+
             for state in self
                 .neighbors_mut(row, column, 1)
-                .filter(|&&mut current| current.is_opponent_of(new))
+                .filter(|&&mut current| current.is_opponent_of(new_state))
             {
-                *state = new;
+                *score.get_mut(new_player) += 1;
+                *score.get_mut(-new_player) -= 1;
+                *state = new_state;
             }
 
+            self.score = score;
             true
         } else {
             false
@@ -386,15 +434,15 @@ impl Board {
     /// # Example
     ///
     /// ```rust
-    /// use blobwars::game::{Board, CellState::*};
+    /// use blobwars::game::{Board, CellState::*, Player::*};
     ///
     /// #[rustfmt::skip]
     /// let tested = vec![
-    ///     Red,  Red,  Free,       Free,       Free,
-    ///     Red,  Red,  Restricted, Free,       Free,
-    ///     Free, Blue, Free,       Restricted, Free,
-    ///     Free, Free, Free,       Free,       Blue,
-    ///     Free, Free, Free,       Free,       Blue,
+    ///     Player(Red), Player(Red),  Free,       Free,       Free,
+    ///     Player(Red), Player(Red),  Restricted, Free,       Free,
+    ///     Free,        Player(Blue), Free,       Restricted, Free,
+    ///     Free,        Free,         Free,       Free,       Player(Blue),
+    ///     Free,        Free,         Free,       Free,       Player(Blue),
     /// ];
     ///
     /// let mut tested = Board::new(5, 5, tested);
@@ -402,11 +450,11 @@ impl Board {
     ///
     /// #[rustfmt::skip]
     /// let expected = vec![
-    ///     Red,  Red,  Free,       Free,       Free,
-    ///     Red,  Free, Restricted, Free,       Free,
-    ///     Free, Blue, Free,       Restricted, Free,
-    ///     Free, Free, Free,       Red,        Red,
-    ///     Free, Free, Free,       Free,       Red,
+    ///     Player(Red), Player(Red),  Free,       Free,        Free,
+    ///     Player(Red), Free,         Restricted, Free,        Free,
+    ///     Free,        Player(Blue), Free,       Restricted,  Free,
+    ///     Free,        Free,         Free,       Player(Red), Player(Red),
+    ///     Free,        Free,         Free,       Free,        Player(Red),
     /// ];
     ///
     /// let expected = Board::new(5, 5, expected);
@@ -415,28 +463,22 @@ impl Board {
     /// assert_eq!(tested, expected);
     /// ```
     pub fn jump(&mut self, from: Index, to: Index) -> bool {
-        if let Some(distance) = self.jump_distance(from, to) {
-            let new_state = self
-                .get(from.0, from.1)
-                .filter(|new_state| new_state.is_playable());
-
-            let to_update = self
+        if let Some(distance) = self.jump_distance(from, to)
+            && let Some(player_state @ CellState::Player(player)) = self.get(from.0, from.1)
+            && let Some(dest_state) = self
                 .get_mut(to.0, to.1)
-                .filter(|to_update| to_update.is_free());
+                .filter(|dest_state| dest_state.is_free())
+        {
+            *dest_state = player_state;
 
-            if let Some((new_state, to_update)) = new_state.zip(to_update) {
-                *to_update = new_state;
-
-                if distance == 2 {
-                    // It cannot panic because it has been checked just before
-                    // that `from` is a valid index.
-                    *self.get_mut(from.0, from.1).unwrap() = CellState::Free;
-                }
-
-                self.blob(to.0, to.1)
+            if distance == 2 {
+                // It cannot panic because it has been checked just before that `from` is a valid index.
+                *self.get_mut(from.0, from.1).unwrap() = CellState::Free;
             } else {
-                false
+                *self.score.get_mut(player) += 1;
             }
+
+            self.blob(to.0, to.1)
         } else {
             false
         }
@@ -470,8 +512,7 @@ impl IntoIterator for Board {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use CellState::*;
+    use super::{CellState::*, Player::*, *};
 
     mod neighbors {
         use super::*;
@@ -672,20 +713,20 @@ mod tests {
             fn jump() {
                 #[rustfmt::skip]
                 let tested = vec![
-                    Red,  Red,  Free,       Free,       Free,
-                    Red,  Red,  Restricted, Free,       Free,
-                    Free, Blue, Free,       Restricted, Free,
-                    Free, Free, Free,       Free,       Blue,
-                    Free, Free, Free,       Free,       Blue,
+                    Player(Red), Player(Red),  Free,       Free,       Free,
+                    Player(Red), Player(Red),  Restricted, Free,       Free,
+                    Free,        Player(Blue), Free,       Restricted, Free,
+                    Free,        Free,         Free,       Free,       Player(Blue),
+                    Free,        Free,         Free,       Free,       Player(Blue),
                 ];
 
                 #[rustfmt::skip]
                 let expected = vec![
-                    Red,  Red,  Free,       Free,       Free,
-                    Red,  Free, Restricted, Free,       Free,
-                    Free, Blue, Free,       Restricted, Free,
-                    Free, Free, Free,       Red,        Red,
-                    Free, Free, Free,       Free,       Red,
+                    Player(Red), Player(Red),  Free,        Free,        Free,
+                    Player(Red), Free,         Restricted,  Free,        Free,
+                    Free,        Player(Blue), Free,        Restricted,  Free,
+                    Free,        Free,         Free,        Player(Red), Player(Red),
+                    Free,        Free,         Free,        Free,        Player(Red),
                 ];
 
                 check((1, 1), (3, 3), tested, expected);
@@ -695,20 +736,20 @@ mod tests {
             fn spread() {
                 #[rustfmt::skip]
                 let tested = vec![
-                    Red,  Red,  Free,       Free,       Free,
-                    Red,  Red,  Restricted, Free,       Free,
-                    Free, Blue, Free,       Restricted, Free,
-                    Free, Free, Free,       Free,       Blue,
-                    Free, Free, Free,       Free,       Blue,
+                    Player(Red), Player(Red),  Free,       Free,       Free,
+                    Player(Red), Player(Red),  Restricted, Free,       Free,
+                    Free,        Player(Blue), Free,       Restricted, Free,
+                    Free,        Free,         Free,       Free,       Player(Blue),
+                    Free,        Free,         Free,       Free,       Player(Blue),
                 ];
 
                 #[rustfmt::skip]
                 let expected = vec![
-                    Red,  Red,  Free,       Free,       Free,
-                    Red,  Red,  Restricted, Free,       Free,
-                    Free, Red,  Red,        Restricted, Free,
-                    Free, Free, Free,       Free,       Blue,
-                    Free, Free, Free,       Free,       Blue,
+                    Player(Red), Player(Red), Free,        Free,       Free,
+                    Player(Red), Player(Red), Restricted,  Free,       Free,
+                    Free,        Player(Red), Player(Red), Restricted, Free,
+                    Free,        Free,        Free,        Free,       Player(Blue),
+                    Free,        Free,        Free,        Free,       Player(Blue),
                 ];
 
                 check((1, 1), (2, 2), tested, expected);
@@ -722,11 +763,11 @@ mod tests {
             fn check(from: Index, to: Index) {
                 #[rustfmt::skip]
                 let tested = vec![
-                    Red,  Red,  Free,       Free,       Free,
-                    Red,  Red,  Restricted, Free,       Free,
-                    Free, Blue, Free,       Restricted, Free,
-                    Free, Free, Free,       Free,       Blue,
-                    Free, Free, Free,       Free,       Blue,
+                    Player(Red), Player(Red),  Free,       Free,       Free,
+                    Player(Red), Player(Red),  Restricted, Free,       Free,
+                    Free,        Player(Blue), Free,       Restricted, Free,
+                    Free,        Free,         Free,       Free,       Player(Blue),
+                    Free,        Free,         Free,       Free,       Player(Blue),
                 ];
 
                 let expected = tested.clone();
