@@ -1,6 +1,10 @@
 //! Implementation of [`Board`] and its [associated state](BoardState)
 
-use crate::game::{CellState, Index, Player};
+use crate::{
+    Command, CommandManaged,
+    game::{CellState, Index, Player},
+};
+
 use ratatui::{layout::Flex, prelude::*};
 use ratatui_macros::{constraint, constraints};
 use std::iter::once;
@@ -287,6 +291,25 @@ impl BoardState {
     /// The next player is the opponent.
     pub fn pass_to_next_player(&mut self) {
         self.current_player = -self.current_player;
+    }
+}
+
+impl CommandManaged for BoardState {
+    fn handle_command(&mut self, command: Command) {
+        match command {
+            Command::Reset => self.reset(),
+
+            Command::Select => {
+                self.select();
+                self.pass_to_next_player();
+            }
+
+            Command::Left => self.left(),
+            Command::Right => self.right(),
+            Command::Up => self.up(),
+            Command::Down => self.down(),
+            _ => (),
+        }
     }
 }
 
