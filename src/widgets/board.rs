@@ -13,7 +13,7 @@ use std::iter::once;
 ///
 /// This state can be used to move through cells and select the departure and destination positions used for a [jump](crate::game::Board::jump).
 /// The underlying type managed by this state is [`Board`](crate::game::Board).
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BoardState {
     board: crate::game::Board,
     current_player: Player,
