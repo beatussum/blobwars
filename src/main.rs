@@ -21,8 +21,9 @@ fn run(mut terminal: DefaultTerminal) -> Result<(), Box<dyn Error>> {
             )
         })?;
 
-        if event::poll(Duration::from_millis(500))? {
-            let command = Command::try_from(event::read()?)?;
+        if event::poll(Duration::from_millis(500))?
+            && let Ok(command) = Command::try_from(event::read()?)
+        {
             application_state.handle_command(command);
         }
     }
