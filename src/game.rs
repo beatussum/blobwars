@@ -152,6 +152,23 @@ impl Score {
     /// use blobwars::game::{Player, Score};
     ///
     /// let mut score = Score::default();
+    /// assert_eq!(score.get(Player::Blue), 0);
+    /// ```
+    pub fn get(&self, player: Player) -> usize {
+        match player {
+            Player::Blue => self.blue,
+            Player::Red => self.red,
+        }
+    }
+
+    /// Get the score of the corresponding player
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use blobwars::game::{Player, Score};
+    ///
+    /// let mut score = Score::default();
     /// assert_eq!(score, Score { blue: 0, red: 0 });
     /// *score.get_mut(Player::Blue) += 1;
     /// assert_eq!(score, Score { blue: 1, red: 0 });
@@ -271,6 +288,69 @@ impl Board {
         self.board.is_empty()
     }
 
+    /// Check if a given [`Player`] can play
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use blobwars::game::{Board, CellState::*, Player::*};
+    ///
+    /// #[rustfmt::skip]
+    /// let board = vec![
+    ///     Player(Red), Restricted,  Restricted,   Free, Free,
+    ///     Restricted,  Restricted,  Restricted,   Free, Free,
+    ///     Restricted,  Restricted,  Player(Blue), Free, Free,
+    ///     Free,        Free,        Free,         Free, Player(Blue),
+    ///     Free,        Free,        Free,         Free, Player(Blue),
+    /// ];
+    ///
+    /// let board = Board::new(5, 5, board);
+    /// assert!(board.can_play(Blue));
+    /// assert!(!board.can_play(Red));
+    /// ```
+    pub fn can_play(&self, player: Player) -> bool {
+        self.board
+            .chunks(self.width)
+            .enumerate()
+            .flat_map(|(i, row)| {
+                row.iter()
+                    .copied()
+                    .enumerate()
+                    .map(move |(j, cell)| ((i, j), cell))
+            })
+            .filter(|&(_, cell)| cell == CellState::Player(player))
+            .flat_map(|((row, column), _)| self.neighbors(row, column, 2))
+            .any(|cell| cell.is_free())
+    }
+
+    /// Get the [`Player`] who is currently winning the game
+    ///
+    /// The winning [`Player`] is the one with the higher score.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use blobwars::game::{Board, CellState::*, Player::*};
+    ///
+    /// #[rustfmt::skip]
+    /// let board = vec![
+    ///     Player(Red), Restricted,  Restricted,   Free, Free,
+    ///     Restricted,  Restricted,  Restricted,   Free, Free,
+    ///     Restricted,  Restricted,  Player(Blue), Free, Free,
+    ///     Free,        Free,        Free,         Free, Player(Blue),
+    ///     Free,        Free,        Free,         Free, Player(Blue),
+    /// ];
+    ///
+    /// let board = Board::new(5, 5, board);
+    /// assert_eq!(board.winning_player(), Blue);
+    /// ```
+    pub fn winning_player(&self) -> Player {
+        [Player::Blue, Player::Red]
+            .into_iter()
+            .max_by_key(|&player| self.score.get(player))
+            .unwrap()
+    }
+
     /// Get the distance between two positions
     ///
     /// # Parameters
@@ -376,6 +456,29 @@ impl Board {
     /// ```
     pub fn iter(&self) -> impl Iterator<Item = CellState> {
         self.board.iter().copied()
+    }
+
+    fn neighbors(
+        &self,
+        row: usize,
+        column: usize,
+        radius: usize,
+    ) -> impl Iterator<Item = CellState> {
+        self.contains(row, column)
+            .then(|| {
+                self.board
+                    .chunks(self.width)
+                    .skip(row.saturating_sub(radius))
+                    .take(1 + radius + row.saturating_sub(radius).min(radius))
+                    .flat_map(move |row| {
+                        row.iter()
+                            .skip(column.saturating_sub(radius))
+                            .take(1 + radius + column.saturating_sub(radius).min(radius))
+                    })
+            })
+            .into_iter()
+            .flatten()
+            .copied()
     }
 
     fn neighbors_mut(

@@ -9,8 +9,10 @@ use ratatui::{
 
 use ratatui_macros::constraints;
 
+use game::Player;
+
 use widgets::{
-    Credits, Logo, Theme,
+    Credits, Logo, Theme, Win,
     board::{BoardState, Score},
 };
 
@@ -87,6 +89,9 @@ pub enum ApplicationState {
     /// Default state showing the application logo
     #[default]
     Logo,
+
+    /// The winning screen with the winning [`Player`]
+    Win(Player),
 }
 
 impl ApplicationState {
@@ -103,18 +108,25 @@ impl CommandManaged for ApplicationState {
                 Self::Board(_) => *self = Self::Logo,
                 Self::Exit => (),
                 Self::Logo => *self = Self::Exit,
+                Self::Win(_) => *self = Self::Logo,
             },
 
             Command::Exit => *self = Self::Exit,
 
             _ => match self {
-                Self::Board(board_state) => board_state.handle_command(command),
+                Self::Board(board_state) => {
+                    board_state.handle_command(command);
+
+                    if board_state.is_ended() {
+                        *self = Self::Win(board_state.winning_player());
+                    }
+                }
+
                 Self::Exit => (),
 
                 Self::Logo => {
-                    if matches!(command, Command::Select) {
-                        use game::CellState::*;
-                        use game::Player::*;
+                    if command == Command::Select {
+                        use game::{CellState::*, Player::*};
 
                         #[rustfmt::skip]
                         let board = vec![
@@ -133,6 +145,8 @@ impl CommandManaged for ApplicationState {
                         *self = Self::Board(board_state);
                     }
                 }
+
+                Self::Win(_) => *self = Self::Logo,
             },
         }
     }
@@ -185,6 +199,8 @@ impl StatefulWidget for Application<'_> {
 
             Self::State::Exit => (),
             Self::State::Logo => Logo { theme: self.theme }.render(area, buf),
+
+            &mut Self::State::Win(player) => Win::new(player).theme(self.theme).render(area, buf),
         }
     }
 }

@@ -1,11 +1,14 @@
 //! A module contaning implementation of the different [widgets](ratatui::widgets::Widget) used by the application
 
+use crate::game::Player;
+
 use ratatui::{
+    layout::Flex,
     prelude::*,
     widgets::{Block, Paragraph, Wrap},
 };
 
-use ratatui_macros::{line, span, text};
+use ratatui_macros::{constraints, line, span, text};
 
 pub mod board;
 
@@ -317,5 +320,101 @@ impl Widget for Logo {
         Text::from_iter(Self::ARS_TEXT)
             .style(self.theme.tertiary)
             .render(ars_area, buf);
+    }
+}
+
+/// A [`Widget`] representing the winning screen
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Win {
+    /// The [winning player](Player)
+    pub player: Player,
+
+    /// The [theme](Theme) used to colorize text
+    pub theme: Theme,
+}
+
+impl Win {
+    const BLUE_TEXT: [&'static str; 5] = [
+        r##" ____  _            "##,
+        r##"| __ )| |_   _  ___ "##,
+        r##"|  _ \| | | | |/ _ \"##,
+        r##"| |_) | | |_| |  __/"##,
+        r##"|____/|_|\__,_|\___|"##,
+    ];
+
+    const BLUE_WIDTH: u16 = Self::BLUE_TEXT[0].len() as _;
+
+    const RED_TEXT: [&'static str; 5] = [
+        r##" ____          _ "##,
+        r##"|  _ \ ___  __| |"##,
+        r##"| |_) / _ \/ _` |"##,
+        r##"|  _ <  __/ (_| |"##,
+        r##"|_| \_\___|\__,_|"##,
+    ];
+
+    const RED_WIDTH: u16 = Self::RED_TEXT[0].len() as _;
+
+    const HAS_WON_TEXT: [&'static str; 5] = [
+        r##" _                                     "##,
+        r##"| |__   __ _ ___  __      _____  _ __  "##,
+        r##"| '_ \ / _` / __| \ \ /\ / / _ \| '_ \ "##,
+        r##"| | | | (_| \__ \  \ V  V / (_) | | | |"##,
+        r##"|_| |_|\__,_|___/   \_/\_/ \___/|_| |_|"##,
+    ];
+
+    const HAS_WON_WIDTH: u16 = Self::HAS_WON_TEXT[0].len() as _;
+
+    const HEIGHT: u16 = Self::BLUE_TEXT.len() as _;
+
+    /// Create a new winning screen
+    ///
+    /// # Parameters
+    ///
+    /// - `player` - The winning player
+    pub fn new(player: Player) -> Self {
+        Self {
+            player,
+            theme: Theme::default(),
+        }
+    }
+
+    /// Set the the [theme](Theme)
+    ///
+    /// This function uses the _builder lite pattern_.
+    pub fn theme(self, theme: Theme) -> Self {
+        Self { theme, ..self }
+    }
+
+    /// Set the [winning player](Player)
+    ///
+    /// This function uses the _builder lite pattern_.
+    pub fn player(self, player: Player) -> Self {
+        Self { player, ..self }
+    }
+}
+
+impl Widget for Win {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let (player_text, player_len) = match self.player {
+            Player::Blue => (Self::BLUE_TEXT, Self::BLUE_WIDTH),
+            Player::Red => (Self::RED_TEXT, Self::RED_WIDTH),
+        };
+
+        let [area] = Layout::vertical(constraints![==Self::HEIGHT])
+            .flex(Flex::Center)
+            .areas(area);
+
+        let [player_area, _, has_won_area] =
+            Layout::horizontal(constraints![==player_len, ==1, ==Self::HAS_WON_WIDTH])
+                .flex(Flex::Center)
+                .areas(area);
+
+        Text::from_iter(player_text)
+            .fg(self.player)
+            .render(player_area, buf);
+
+        Text::from_iter(Self::HAS_WON_TEXT)
+            .style(self.theme.important)
+            .render(has_won_area, buf);
     }
 }

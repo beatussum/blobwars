@@ -80,6 +80,20 @@ impl BoardState {
         self.board.width()
     }
 
+    /// Check if the current game is ended
+    ///
+    /// The game is ended when the current [`Player`] cannot play.
+    pub fn is_ended(&self) -> bool {
+        !self.board.can_play(self.current_player)
+    }
+
+    /// Get the [`Player`] who is currently winning the game
+    ///
+    /// This method is just a wrapper around [`Board::winning_player()`](crate::game::Board::winning_player()).
+    pub fn winning_player(&self) -> Player {
+        self.board.winning_player()
+    }
+
     fn jump<F>(&mut self, jump: F)
     where
         F: FnOnce(Index) -> Index,
